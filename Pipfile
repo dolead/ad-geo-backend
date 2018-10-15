@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[dev-packages]
+pipenv = "*"
+pycodestyle = "*"
+ipython = "*"
+pylint = "*"
+ipdb = "*"
+twine = "*"
+
+[packages]
+pymongo = "==2.8"
+python-slugify = "==1.2.6"
+
+[requires]
+python_version = "3.6"
