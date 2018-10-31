@@ -11,6 +11,7 @@ class GeoModel:
         self.parent_id = kwargs.get('parent_id')
         self.canonical_name = kwargs.get('canonical_name')
         self.country_code = kwargs.get('country_code')
+        self.iso_code = kwargs.get('iso_code')
 
         self.latitude = kwargs.get('latitude')
         self.longitude = kwargs.get('longitude')
@@ -63,6 +64,7 @@ class GeoModel:
                 'parent_id': self.parent_id,
                 'canonical_name': self.canonical_name,
                 'country_code': self.country_code,
+                'iso_code': self.iso_code,
 
                 'latitude': self.latitude,
                 'longitude': self.longitude}

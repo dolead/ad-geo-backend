@@ -15,9 +15,16 @@ SAINT_PATTERNS = ((re.compile(r'^st-'), 'saint-'),
 
 class AbstractTranslator:
 
-    def __init__(self, slug_to_gps=None):
-        self._stats = {'translated': 0, 'gps_coord_added': 0}
+    def __init__(self, slug_to_gps=None, gid_to_iso=None):
+        self._stats = {'translated': 0, 'gps_coord_added': 0,
+                       'iso_code_added': 0}
         self._slug_to_gps = slug_to_gps or {}
+        self._gid_to_iso = gid_to_iso or {}
+
+    def _enrich_w_iso_code(self, google_id, result):
+        if google_id in self._gid_to_iso:
+            result['iso_code'] = self._gid_to_iso[google_id]
+            self._stats['iso_code_added'] += 1
 
     def _enrich_w_coords(self, slug, result):
         if slug in self._slug_to_gps \
@@ -27,9 +34,10 @@ class AbstractTranslator:
             self._stats['gps_coord_added'] += 1
 
     def print_stats(self):
-        logger.warning('translated %d elements', self._stats['translated'])
-        logger.warning('added gps coords to %d elements',
-                       self._stats['gps_coord_added'])
+        print('translated ', self._stats['translated'], ' elements')
+        print('added gps coords to ', self._stats['gps_coord_added'],
+                ' elements')
+        print('added iso code to ', self._stats['iso_code_added'], ' elements')
 
 
 def parse_french_pc(french_pc_file):
@@ -48,6 +56,13 @@ def parse_french_pc(french_pc_file):
                 if pattern.match(key):
                     slug_to_gps[pattern.sub(long_form, key)] = gps_coords
     return slug_to_gps
+
+
+def parse_iso_codes(iso_codes_csv):
+    iso_mapping = {}
+    for iso_code in file_utils.csv_to_dict(iso_codes_csv):
+        iso_mapping[iso_code['Google ID']] = iso_code['Iso Code']
+    return iso_mapping
 
 
 def correct_with_french_geoloc(network, cities, postal_codes):

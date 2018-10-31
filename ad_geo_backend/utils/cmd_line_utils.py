@@ -11,9 +11,12 @@ def parse_args():
     args.add_argument('--google', default=None)
     args.add_argument('--bing', default=None)
     args.add_argument('--french-pc', dest='french_pc', default=None)
+    args.add_argument('--iso-code', dest='iso_codes', default=None,
+            help='a mapping Google IDsto ISO Codes')
     cmd_line = args.parse_args()
 
     MongoBackend.set_connection(cmd_line.db_host, cmd_line.db_name,
                                 name=cmd_line.db_user,
                                 password=cmd_line.db_pwd)
-    return (cmd_line.google, cmd_line.bing, cmd_line.french_pc)
+    return (cmd_line.google, cmd_line.bing,
+            cmd_line.french_pc, cmd_line.iso_codes)

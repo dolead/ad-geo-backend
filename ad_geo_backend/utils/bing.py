@@ -7,9 +7,9 @@ logger = logging.getLogger(__name__)
 
 class Translator(AbstractTranslator):
 
-    def __init__(self, slug_to_gps=None):
+    def __init__(self, *args, **kwargs):
         self.parents = {}
-        super().__init__(slug_to_gps)
+        super().__init__(*args, **kwargs)
 
     def translate(self, line):
         names = line['Bing Display Name'].split('|')
@@ -31,6 +31,7 @@ class Translator(AbstractTranslator):
             result['top_level'] = names[-1]
 
         self._enrich_w_coords(result['slug'], result)
+        self._enrich_w_iso_code(dolead_id, result)
         self._stats['translated'] += 1
         return result
 
