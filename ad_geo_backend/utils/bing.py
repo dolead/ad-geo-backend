@@ -40,9 +40,16 @@ def correct_with_google_data(bing_backend, google_backend):
     country_codes = {country.name: country.country_code
             for country in google_backend.list({'geo_type': 'Country'})}
 
+    modified_elements = 0
     for index, name in enumerate(country_codes):
         if not index % 50:
-            logger.warning('added %d/%d codes', index, len(country_codes))
-        bing_backend.collection.update({'top_level': name},
+            logger.warning('added %d/%d codes (to %d locations)',
+                    index, len(country_codes), modified_elements)
+        res1 = bing_backend.collection.update({'top_level': name},
                 {'$set': {'country_code': country_codes[name]}}, multi=True)
-    logger.warning('added %d/%d codes', len(country_codes), len(country_codes))
+        res2 = bing_backend.collection.update(
+                {'name': name, 'geo_type': 'Country'},
+                {'$set': {'country_code': country_codes[name]}}, multi=True)
+        modified_elements += res1['nModified'] + res2['nModified']
+    logger.warning('added %d/%d codes (to %d locations)',
+            len(country_codes), len(country_codes), modified_elements)
