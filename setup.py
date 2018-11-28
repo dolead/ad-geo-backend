@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages
 
-REQUIREMENTS = ['pymongo==2.8', 'python-slugify==1.2.6']
+REQUIREMENTS = ['pymongo>=2.8', 'python-slugify==1.2.6']
 
 
 setup(name='ad-geo-backend',
-      version='1.1.1',
+      version='1.1.2',
       description='Geographical data management',
       url='https://github.com/dolead/ad-geo-backend',
       author_email='backend@dolead.com',
