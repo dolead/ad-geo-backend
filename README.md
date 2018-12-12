@@ -4,6 +4,8 @@ The purpose of this package is to store and enhance Geo data from [Adwords](http
 
 You can enhance french location by supplying a CSV listing french cities and there GPS coordinates available [here](https://www.data.gouv.fr/fr/datasets/base-officielle-des-codes-postaux/).
 
+To handle the city names in different languages, you can use files from [Geonames](http://download.geonames.org/export/dump/)
+
 ### Warning
 
 * AdWords and Bing data are stored in separate collections
@@ -24,7 +26,7 @@ python setup.py develop
 ## Feeding AdGeoBackend
 
 ```bash
-load-geo-data amongo01.raws jenkins_geo jenkins jenkins --google google.csv --bing bing.csv --frenc-pc laposte_hexasmal.csv
+load-geo-data amongo01.raws jenkins_geo jenkins jenkins --google google.csv --bing bing.csv --frenc-pc laposte_hexasmal.csv --alternate-names alternateNamesV2.txt --geonames-cities allCountries.txt
 ```
 
 ## Using the backend
