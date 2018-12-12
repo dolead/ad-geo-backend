@@ -122,11 +122,14 @@ def parse_cities(cities_txt):
     for city in file_utils.txt_to_dict(cities_txt):
         geoname_id = city[0]
         name = city[1].lower()
+        ascii_name = city[2].lower()
         country = city[8].upper()
         # Did not find enough data in the txt file for this one
         if not (geoname_id and name and country):
             continue
         cities[(name, country)] = geoname_id
+        if name != ascii_name:
+            cities[(ascii_name, country)] = geoname_id
     return cities
 
 
