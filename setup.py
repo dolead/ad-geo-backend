@@ -16,4 +16,4 @@ setup(name='ad-geo-backend',
               'load-geo-data = ad_geo_backend.shell:load',
           ],
       },
-)
+      )

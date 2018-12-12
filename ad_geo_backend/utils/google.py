@@ -17,5 +17,6 @@ class Translator(AbstractTranslator):
             result['parent_id'] = line['Parent ID']
         self._enrich_w_coords(result['slug'], result)
         self._enrich_w_iso_code(line['Criteria ID'], result)
+        self._enrich_w_lang(result, result['country_code'])
         self._stats['translated'] += 1
         return result

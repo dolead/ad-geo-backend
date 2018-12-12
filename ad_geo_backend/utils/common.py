@@ -1,6 +1,7 @@
 import re
 import logging
 from slugify import slugify
+
 from ad_geo_backend.backends.mongodb import MongoBackend
 from ad_geo_backend.utils import file_utils
 
@@ -15,15 +16,28 @@ SAINT_PATTERNS = ((re.compile(r'^st-'), 'saint-'),
 
 class AbstractTranslator:
 
-    def __init__(self, slug_to_gps=None, gid_to_iso=None):
+    def __init__(self, slug_to_gps=None, gid_to_iso=None, alt_names=None,
+                 cities=None):
         self._stats = {'translated': 0, 'gps_coord_added': 0,
-                       'iso_code_added': 0}
+                       'iso_code_added': 0, 'lang_added': 0,
+                       }
         self._slug_to_gps = slug_to_gps or {}
         self._gid_to_iso = gid_to_iso or {}
+        self._alt_names = alt_names or {}
+        self._cities = cities or {}
 
     def _enrich_w_iso_code(self, google_id, result):
         if google_id in self._gid_to_iso:
             result['iso_code'] = self._gid_to_iso[google_id]
+            self._stats['iso_code_added'] += 1
+        # Maybe in the parent id?
+        elif result.get('parent_id') in self._gid_to_iso:
+            result['iso_code'] = self._gid_to_iso[result['parent_id']]
+            self._stats['iso_code_added'] += 1
+        # Maybe we are too deep and the parent is irrelevant so look for the
+        # country code directly
+        elif result.get('country_code') in self._gid_to_iso.values():
+            result['iso_code'] = result['country_code']
             self._stats['iso_code_added'] += 1
 
     def _enrich_w_coords(self, slug, result):
@@ -33,11 +47,29 @@ class AbstractTranslator:
             result['longitude'] = self._slug_to_gps[slug][1]
             self._stats['gps_coord_added'] += 1
 
+    def _enrich_w_lang(self, result, country_code=None):
+        name = result['name']
+        if 'iso_code' not in result:
+            # No iso_code, couldn't guess more...
+            lang = []
+        else:
+            if country_code is None:
+                country_code = result['iso_code']
+                # Assuming region are set with - for Bing
+                if '-' in country_code:
+                    country_code = country_code.split('-')[0]
+            geoname_id = self._cities.get((name.lower(), country_code.upper()))
+            lang = self._alt_names.get(geoname_id, [])
+        result['lang'] = lang
+        if lang:
+            self._stats['lang_added'] += 1
+
     def print_stats(self):
         print('translated ', self._stats['translated'], ' elements')
         print('added gps coords to ', self._stats['gps_coord_added'],
-                ' elements')
+              ' elements')
         print('added iso code to ', self._stats['iso_code_added'], ' elements')
+        print('added lang to ', self._stats['lang_added'], ' elements')
 
 
 def parse_french_pc(french_pc_file):
@@ -65,6 +97,39 @@ def parse_iso_codes(iso_codes_csv):
     return iso_mapping
 
 
+def parse_alt_names(alt_names_txt):
+    alt_names = {}
+    for alt_name in file_utils.txt_to_dict(alt_names_txt):
+        geoname_id = alt_name[1]
+        iso_language = alt_name[2].upper()
+        name = alt_name[3]
+        # Did not find enough data in the txt file for this one
+        if not (geoname_id and iso_language and name):
+            continue
+        # Geonames include link to wikipedia and postal code
+        if iso_language in ['LINK', 'POST']:
+            continue
+
+        if geoname_id in alt_names:
+            alt_names[geoname_id].append({'lang': iso_language, 'name': name})
+        else:
+            alt_names[geoname_id] = [{'lang': iso_language, 'name': name}]
+    return alt_names
+
+
+def parse_cities(cities_txt):
+    cities = {}
+    for city in file_utils.txt_to_dict(cities_txt):
+        geoname_id = city[0]
+        name = city[1].lower()
+        country = city[8].upper()
+        # Did not find enough data in the txt file for this one
+        if not (geoname_id and name and country):
+            continue
+        cities[(name, country)] = geoname_id
+    return cities
+
+
 def correct_with_french_geoloc(network, cities, postal_codes):
     backend = MongoBackend(network)
     modified_cities, modified_pc = 0, 0
@@ -75,7 +140,7 @@ def correct_with_french_geoloc(network, cities, postal_codes):
             continue
         if not index % UPDATE_FREQ:
             logger.warning('FRENCH CITIES modified/processed/total %d/%d/%d',
-                    modified_cities, index, len(cities))
+                           modified_cities, index, len(cities))
         lat, lng = cities[slug]['coordonnees_gps'].split(', ')
         result = backend.collection.update(
                 {'country_code': 'FR', 'slug': slug},
@@ -88,7 +153,7 @@ def correct_with_french_geoloc(network, cities, postal_codes):
             continue
         if not index % UPDATE_FREQ:
             logger.warning('FRENCH PC modified/processed/total %d/%d/%d',
-                    modified_pc, index, len(cities))
+                           modified_pc, index, len(cities))
         lat, lng = postal_codes[postal_code]['coordonnees_gps'].split(', ')
         result = backend.collection.update(
                 {'country_code': 'FR', 'name': postal_code},
@@ -105,7 +170,7 @@ def load_file_to_backend(backend, csv_file, translator):
         lines.append(line)
         if len(lines) >= WRITE_BATCH_SIZE:
             logger.info('writing %d lines into %s',
-                    WRITE_BATCH_SIZE, backend.network)
+                        WRITE_BATCH_SIZE, backend.network)
             backend.insert_many(lines)
             lines = []
     if lines:
