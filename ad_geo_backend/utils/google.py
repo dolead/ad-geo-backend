@@ -42,13 +42,12 @@ def get_all_names(line):
 
 def correct_fr_hierarchy(backend, french_pc_file=None):
     """
-    Try to connect cities, department & region as far as we can
+    Try to connect FR cities & department as far as we can
     """
     if french_pc_file is None:
         return
 
     deps = {}
-    postal_codes = {}
     cities = {}
     ops = []
 
@@ -62,11 +61,10 @@ def correct_fr_hierarchy(backend, french_pc_file=None):
     # Constructing mapping
     for city in file_utils.csv_to_dict(french_pc_file, delimiter=';'):
         city_d = {'dep_no': city['Code_commune_INSEE'][:2],
-                  'pc': city['Code_postal']}
+                  }
+
         if city_d['dep_no'].startswith('0'):
             city_d['dep_no'] = city_d['dep_no'][1]
-
-        postal_codes[city['Code_postal']] = city_d
 
         if city_d['dep_no'] in {'97', '98', '99'}:
             continue
@@ -85,8 +83,66 @@ def correct_fr_hierarchy(backend, french_pc_file=None):
             continue
         city['parent_id'] = deps[cdata['dep_no']]['dolead_id']
         ops.append(ReplaceOne({'_id': city['_id']}, city))
+
     if ops:
         print('%s/%s FR hierarchy corrected' % (
             len(ops), backend.collection.find({'country_code': 'FR',
+                                               'geo_type': 'City'}).count()))
+        backend.collection.bulk_write(ops)
+
+
+def correct_es_hierarchy(backend, spain_pc_file=None):
+    """
+    Try to connect ES cities & provinces as far as we can
+    """
+    if spain_pc_file is None:
+        return
+
+    provs = {}
+    cities = {}
+    ops = []
+
+    def _get_all_names(line):
+        yield line[2]
+        line_name = line[2]
+        if '/' in line_name:
+            for name in line_name.split('/'):
+                yield name.strip()
+
+    for prov in backend.collection.find({'country_code': 'ES',
+                                        'geo_type': 'Province'}):
+        if 'ES-' in prov['iso_code']:
+            provs[prov['iso_code'].split('-')[1]] = prov
+        else:
+            provs[prov['iso_code']] = provs
+
+    # Constructing mapping
+    for city in file_utils.txt_to_dict(spain_pc_file):
+        city_d = {'province': city[4],
+                  }
+
+        for name in _get_all_names(city):
+            try:
+                key = "%s-%s" % (provs[city_d['province']]['parent_id'],
+                                 name.lower())
+            except KeyError:
+                # Province did not exist in our Adwords file
+                continue
+            cities[key] = city_d
+
+    # Browsing collection to update when possible
+    for city in backend.collection.find({'country_code': 'ES',
+                                         'geo_type': 'City'}):
+        cdata = cities.get('%s-%s' % (city['parent_id'], city['name'].lower()))
+        if cdata is None:
+            continue
+        if cdata['province'] not in provs:
+            continue
+        city['parent_id'] = provs[cdata['province']]['dolead_id']
+        ops.append(ReplaceOne({'_id': city['_id']}, city))
+
+    if ops:
+        print('%s/%s ES hierarchy corrected' % (
+            len(ops), backend.collection.find({'country_code': 'ES',
                                                'geo_type': 'City'}).count()))
         backend.collection.bulk_write(ops)

@@ -11,6 +11,7 @@ def parse_args():
     args.add_argument('--google', default=None)
     args.add_argument('--bing', default=None)
     args.add_argument('--french-pc', dest='french_pc', default=None)
+    args.add_argument('--spain-pc', dest='spain_pc', default=None)
     args.add_argument('--iso-code', dest='iso_codes', default=None,
                       help='a mapping Google IDsto ISO Codes')
     args.add_argument('--alternate-names', dest='alt_names', default=None,
@@ -23,4 +24,5 @@ def parse_args():
                                 name=cmd_line.db_user,
                                 password=cmd_line.db_pwd)
     return (cmd_line.google, cmd_line.bing, cmd_line.french_pc,
-            cmd_line.iso_codes, cmd_line.alt_names, cmd_line.cities)
+            cmd_line.spain_pc, cmd_line.iso_codes, cmd_line.alt_names,
+            cmd_line.cities)
