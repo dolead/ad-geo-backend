@@ -1,5 +1,8 @@
 from slugify import slugify
-from ad_geo_backend.utils.common import AbstractTranslator
+from pymongo import ReplaceOne
+
+from ad_geo_backend.utils.common import (AbstractTranslator, SAINT_PATTERNS)
+from ad_geo_backend.utils import file_utils
 
 
 class Translator(AbstractTranslator):
@@ -20,3 +23,70 @@ class Translator(AbstractTranslator):
         self._enrich_w_lang(result, result['country_code'])
         self._stats['translated'] += 1
         return result
+
+
+def get_all_names(line):
+    yield slugify(line['Nom_commune'])
+    name = slugify(line['Nom_commune'])
+    for pattern, long_form in SAINT_PATTERNS:
+        name = pattern.sub(long_form, name)
+    yield name
+    yield slugify(line['Libelle_acheminement'])
+    name = slugify(line['Libelle_acheminement'])
+    for pattern, long_form in SAINT_PATTERNS:
+        name = pattern.sub(long_form, name)
+    yield name
+    if line['Ligne_5']:  # linking old name
+        yield slugify(line['Ligne_5'])
+
+
+def correct_fr_hierarchy(backend, french_pc_file=None):
+    """
+    Try to connect cities, department & region as far as we can
+    """
+    if french_pc_file is None:
+        return
+
+    deps = {}
+    postal_codes = {}
+    cities = {}
+    ops = []
+
+    for dep in backend.collection.find({'country_code': 'FR',
+                                        'geo_type': 'Department'}):
+        if 'FR-' in dep['iso_code']:
+            deps[dep['iso_code'].split('-')[1]] = dep
+        else:
+            deps[dep['iso_code']] = dep
+
+    # Constructing mapping
+    for city in file_utils.csv_to_dict(french_pc_file, delimiter=';'):
+        city_d = {'dep_no': city['Code_commune_INSEE'][:2],
+                  'pc': city['Code_postal']}
+        if city_d['dep_no'].startswith('0'):
+            city_d['dep_no'] = city_d['dep_no'][1]
+
+        postal_codes[city['Code_postal']] = city_d
+
+        if city_d['dep_no'] in {'97', '98', '99'}:
+            continue
+
+        for name in get_all_names(city):
+            key = "%s-%s" % (deps[city_d['dep_no']]['parent_id'], name)
+            cities[key] = city_d
+
+    # Browsing collection to update when possible
+    for city in backend.collection.find({'country_code': 'FR',
+                                         'geo_type': 'City'}):
+        cdata = cities.get('%s-%s' % (city['parent_id'], city['slug']))
+        if cdata is None:
+            continue
+        if cdata['dep_no'] not in deps:
+            continue
+        city['parent_id'] = deps[cdata['dep_no']]['dolead_id']
+        ops.append(ReplaceOne({'_id': city['_id']}, city))
+    if ops:
+        print('%s/%s FR hierarchy corrected' % (
+            len(ops), backend.collection.find({'country_code': 'FR',
+                                               'geo_type': 'City'}).count()))
+        backend.collection.bulk_write(ops)

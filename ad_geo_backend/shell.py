@@ -35,6 +35,7 @@ def load():
         google_backend.reset()
         google_backend.check_indexes()
         common.load_file_to_backend(google_backend, google_file, google_trans)
+        google.correct_fr_hierarchy(google_backend, french_pc_file)
     if bing_file:
         bing_backend = MongoBackend('BING')
         bing_backend.reset()
