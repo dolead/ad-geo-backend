@@ -47,20 +47,25 @@ class AbstractTranslator:
             result['longitude'] = self._slug_to_gps[slug][1]
             self._stats['gps_coord_added'] += 1
 
-    def _enrich_w_lang(self, result, country_code=None):
+    def _enrich_w_lang_n_pop(self, result, country_code=None):
         name = result['name']
         if 'iso_code' not in result:
             # No iso_code, couldn't guess more...
             lang = []
+            population = None
         else:
             if country_code is None:
                 country_code = result['iso_code']
                 # Assuming region are set with - for Bing
                 if '-' in country_code:
                     country_code = country_code.split('-')[0]
-            geoname_id = self._cities.get((name.lower(), country_code.upper()))
+            geoname_id, population = self._cities.get((name.lower(),
+                                                       country_code.upper()),
+                                                      (None, None))
             lang = self._alt_names.get(geoname_id, [])
         result['lang'] = lang
+        if population and int(population) > 0:
+            result['population'] = int(population)
         if lang:
             self._stats['lang_added'] += 1
 
@@ -124,12 +129,13 @@ def parse_cities(cities_txt):
         name = city[1].lower()
         ascii_name = city[2].lower()
         country = city[8].upper()
+        population = city[14].upper()
         # Did not find enough data in the txt file for this one
         if not (geoname_id and name and country):
             continue
-        cities[(name, country)] = geoname_id
+        cities[(name, country)] = (geoname_id, population)
         if name != ascii_name:
-            cities[(ascii_name, country)] = geoname_id
+            cities[(ascii_name, country)] = (geoname_id, population)
     return cities
 
 
