@@ -47,7 +47,7 @@ class AbstractTranslator:
             result['longitude'] = self._slug_to_gps[slug][1]
             self._stats['gps_coord_added'] += 1
 
-    def _enrich_w_lang(self, result, country_code=None):
+    def _enrich_w_lang_n_pop(self, result, country_code=None):
         name = result['name']
         if 'iso_code' not in result:
             # No iso_code, couldn't guess more...

@@ -32,7 +32,7 @@ class Translator(AbstractTranslator):
 
         self._enrich_w_coords(result['slug'], result)
         self._enrich_w_iso_code(dolead_id, result)
-        self._enrich_w_lang(result)
+        self._enrich_w_lang_n_pop(result)
         self._stats['translated'] += 1
         return result
 
