@@ -128,10 +128,14 @@ def parse_cities(cities_txt):
         geoname_id = city[0]
         name = city[1].lower()
         ascii_name = city[2].lower()
+        feature_class = city[6]
         country = city[8].upper()
         population = city[14].upper()
         # Did not find enough data in the txt file for this one
         if not (geoname_id and name and country):
+            continue
+        # Feature class must be a city: P in geoNames
+        if feature_class != 'P':
             continue
         cities[(name, country)] = (geoname_id, population)
         if name != ascii_name:

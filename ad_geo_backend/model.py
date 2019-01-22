@@ -16,6 +16,9 @@ class GeoModel:
         self.latitude = kwargs.get('latitude')
         self.longitude = kwargs.get('longitude')
 
+        self.lang = kwargs.get('lang')
+        self.population = kwargs.get('population')
+
     @property
     def bing_id(self):
         return self.publisher_id
@@ -67,4 +70,8 @@ class GeoModel:
                 'iso_code': self.iso_code,
 
                 'latitude': self.latitude,
-                'longitude': self.longitude}
+                'longitude': self.longitude,
+
+                'lang': self.lang,
+                'population': self.population,
+                }
