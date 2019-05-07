@@ -23,6 +23,7 @@ class MongoBackend(AbstractGeoBackend):
         'parent_id': None,
         'publisher_id': None,
     }
+    model = GeoModel
 
     @classmethod
     def set_connection(cls, host, db_name, **credentials):
@@ -39,11 +40,11 @@ class MongoBackend(AbstractGeoBackend):
         if limit:
             query.limit(limit)
         for l in query:
-            yield GeoModel(self, **l)
+            yield self.model(self, **l)
 
     def get(self, criteria):
         item = self.collection.find_one(criteria)
-        return GeoModel(self, **item) if item else item
+        return self.model(self, **item) if item else item
 
     def insert_many(self, objects):
         return self.collection.insert(objects)
@@ -62,9 +63,15 @@ class MongoBackend(AbstractGeoBackend):
     @property
     def collection(self):
         return getattr(self.get_database(),
-                '%s_%s' % (self.__collection_prefix, self.network.lower()))
+                       '%s_%s' % (self.__collection_prefix,
+                                  self.network.lower()))
 
     def check_indexes(self):
         for idx, options in self.__indexes.items():
             options = options or {}
             self.collection.ensure_index(idx, **options)
+
+    @classmethod
+    def close_connection(cls):
+        if cls.__connection:
+            cls.__connection.close()

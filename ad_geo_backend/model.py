@@ -75,3 +75,47 @@ class GeoModel:
                 'lang': self.lang,
                 'population': self.population,
                 }
+
+
+class GeonamesModel:
+
+    def __init__(self, backend, **kwargs):
+        self._backend = backend
+        self.admin1_code = kwargs.get('admin1_code')
+        self.admin2_code = kwargs.get('admin2_code')
+        self.admin3_code = kwargs.get('admin3_code')
+        self.admin4_code = kwargs.get('admin4_code')
+        self.alt_country_code = kwargs.get('alt_country_code')
+        self.alternate_names = kwargs.get('alternate_names')
+        self.asciiname = kwargs.get('asciiname')
+        self.country_code = kwargs.get('country_code')
+        self.elevation = kwargs.get('elevation')
+        self.feature_class = kwargs.get('feature_class')
+        self.geoname_id = kwargs.get('geoname_id')
+        self.latitude = kwargs.get('latitude')
+        self.longitude = kwargs.get('longitude')
+        self.name = kwargs.get('name')
+        self.name_lower = kwargs.get('name_lower')
+        self.population = kwargs.get('population')
+        self.timezone = kwargs.get('timezone')
+
+    def dump(self):
+        return {
+            'admin1_code': self.admin1_code,
+            'admin2_code': self.admin2_code,
+            'admin3_code': self.admin3_code,
+            'admin4_code': self.admin4_code,
+            'alt_country_code': self.alt_country_code,
+            'alternate_names': self.alternate_names,
+            'asciiname': self.asciiname,
+            'country_code': self.country_code,
+            'elevation': self.elevation,
+            'feature_class': self.feature_class,
+            'geoname_id': self.geoname_id,
+            'latitude': self.latitude,
+            'longitude': self.longitude,
+            'name': self.name,
+            'name_lower': self.name_lower,
+            'population': self.population,
+            'timezone': self.timezone,
+        }
