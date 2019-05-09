@@ -1,6 +1,7 @@
 import re
 import logging
 from slugify import slugify
+from unidecode import unidecode
 
 from ad_geo_backend.backends.mongodb import MongoBackend
 from ad_geo_backend.utils import file_utils
@@ -190,3 +191,76 @@ def load_file_to_backend(backend, csv_file, translator):
         backend.insert_many(lines)
         logger.info('writing %d lines into %s', len(lines), backend.network)
     translator.print_stats()
+
+
+def fill_geo_data(backend, cities_file):
+    """
+    Will parse all file to get the data we need and push it all in the backend
+
+    cities_file columns can be found in:
+    http://download.geonames.org/export/dump/
+    """
+    def _translate_geonames(line):
+        return {
+            'geoname_id': line[0],
+            'name': line[1],
+            'name_lower': unidecode(line[1].lower()),
+            'asciiname': line[2],
+            'alternate_names': unidecode(line[3].lower()),
+            'latitude': line[4],
+            'longitude': line[5],
+            'feature_class': line[6],
+            'country_code': line[8],
+            'alt_country_code': line[9],
+            'admin1_code': line[10],
+            'admin2_code': line[11],
+            'admin3_code': line[12],
+            'admin4_code': line[13],
+            'population': int(line[14]) if line[14] else 0,
+            'elevation': int(line[15]) if line[15] else 0,
+            'timezone': line[17],
+        }
+
+    lines = []
+    for line in file_utils.txt_to_dict(cities_file):
+        trans_line = _translate_geonames(line)
+        lines.append(trans_line)
+        if len(lines) >= WRITE_BATCH_SIZE:
+            logger.info('writing %d lines into %s',
+                        WRITE_BATCH_SIZE, backend.network)
+            backend.insert_many(lines)
+            lines = []
+    if lines:
+        backend.insert_many(lines)
+        logger.info('writing %d lines into %s', len(lines), backend.network)
+
+
+AVOID_LANGS = ('post', 'iata', 'icao', 'faac', 'fr_1793', 'link', 'wkdt')
+
+
+def fill_lang_geo(backend, alt_names_file):
+    def lang_to_db_generator(lang_dict):
+        for geoname_id, langs in lang_dict.items():
+            yield {'filter': {'geoname_id': geoname_id},
+                   'update': {'langs': langs}}
+
+    langs_by_id = {}
+    for line in file_utils.txt_to_dict(alt_names_file):
+        if len(line) >= 8:  # Historical name
+            continue
+        geoname_id = line[1]
+        iso_language = line[2]
+        alt_name = line[3]
+        if not iso_language or not alt_name or iso_language in AVOID_LANGS:
+            continue
+        langs = langs_by_id.get(geoname_id, {})
+        lang_names = [alt_name]
+        if iso_language in langs:
+            lang_names = set(langs[iso_language])
+            lang_names.add(alt_name)
+        langs[iso_language] = list(lang_names)
+        langs_by_id[geoname_id] = langs
+
+    for geoname_id, langs in langs_by_id.items():
+        backend.collection.update_one({'geoname_id': geoname_id},
+                                      {'$set': {'langs': langs}})
