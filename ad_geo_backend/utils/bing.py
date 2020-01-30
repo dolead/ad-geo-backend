@@ -27,7 +27,13 @@ class Translator(AbstractTranslator):
                   }
 
         if len(names) > 1:
-            result['parent_id'] = self.parents[tuple(names[1:])]
+            # direct parent might not be present,
+            # working our way through the possible parents
+            for i in range(1, len(names)):
+                if tuple(names[i:]) in self.parents:
+                    result['parent_id'] = self.parents[tuple(names[i:])]
+                    break
+
             result['top_level'] = names[-1]
 
         self._enrich_w_coords(result['slug'], result)
