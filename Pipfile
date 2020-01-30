@@ -12,7 +12,7 @@ ipdb = "*"
 twine = "*"
 
 [packages]
-pymongo = "==2.8"
+pymongo = ">=2.8"
 python-slugify = "==1.2.6"
 
 [requires]

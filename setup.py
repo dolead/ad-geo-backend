@@ -5,9 +5,10 @@ REQUIREMENTS = ['pymongo>=2.8', 'python-slugify==1.2.6']
 
 
 setup(name='ad-geo-backend',
-      version='1.1.7',
+      version='1.2.1',
       description='Geographical data management',
       url='https://github.com/dolead/ad-geo-backend',
+      author='Dolead',
       author_email='backend@dolead.com',
       install_requires=REQUIREMENTS,
       packages=find_packages(),
