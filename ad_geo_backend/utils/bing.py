@@ -9,12 +9,14 @@ class Translator(AbstractTranslator):
 
     def __init__(self, *args, **kwargs):
         self.parents = {}
+        self._encoutered_ids = set()
         super().__init__(*args, **kwargs)
 
     def translate(self, line):
         names = line['Bing Display Name'].split('|')
-        dolead_id = line['AdWords Location Id'] \
-                or 'bing_%s' % line['Location Id']
+        dolead_id = line['AdWords Location Id']
+        if not dolead_id or dolead_id in self._encoutered_ids:
+            dolead_id = 'bing_%s' % line['Location Id']
         self.parents[tuple(names)] = dolead_id
 
         result = {'dolead_id': dolead_id,
