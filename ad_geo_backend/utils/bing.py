@@ -18,6 +18,7 @@ class Translator(AbstractTranslator):
         if not dolead_id or dolead_id in self._encoutered_ids:
             dolead_id = 'bing_%s' % line['Location Id']
         self.parents[tuple(names)] = dolead_id
+        self._encoutered_ids.add(dolead_id)
 
         result = {'dolead_id': dolead_id,
                   'publisher_id': line['Location Id'],
