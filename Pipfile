@@ -16,4 +16,4 @@ pymongo = "==2.8"
 python-slugify = "==1.2.6"
 
 [requires]
-python_version = "3.6"
+python_version = "3"
